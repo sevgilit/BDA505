@@ -1,0 +1,107 @@
+Name: 		Türkan Sevgili
+E-mail: 	sevgilit@mef.edu.tr
+
+
+/*Q1- Query provides the comedy-type movies which have averagerating higher than 9.5, from 2015 in descending order on number of vote.*/
+
+SELECT subq1.*, title_ratings.averagerating, title_ratings.numvotes
+  FROM
+(
+SELECT tconst, originaltitle, startyear, runtimeminutes, genres
+  FROM title_basics
+  WHERE titletype='movie'
+	AND genres ~ '(?i)Comedy'
+        AND startyear >= 2015
+) subq1
+
+LEFT JOIN title_ratings ON subq1.tconst=title_ratings.tconst 
+	WHERE AVERAGERATING>9.5 ORDER BY numvotes desc;
+
+/*Q1- Output 
+
+tconst;"originaltitle";"startyear";"runtimeminutes";"genres";"averagerating";"numvotes"
+tt6290024;"Uno: The Movie";"2016";"164";"Comedy";"9.7";"8390"
+tt6715006;"Happenstance";"2017";"89";"Comedy";"10.0";"171"
+tt5759506;"Avec l'amour";"2017";"67";"Comedy
+tt6175402;"Feedback";"2017";"108";"Comedy
+tt6416000;"Fancyland";"2015";"89";"Comedy";"10.0";"76"
+tt5585374;"1st Sem";"2016";"103";"Comedy
+tt4653808;"Quality Problems";"2017";"106";"Comedy
+tt2678510;"Old Man Football";"2017";"86";"Comedy
+tt6737494;"Writing Home";"2017";"";"Comedy
+tt5069072;"MisiÃ³n No Oficial";"2017";"75";"Comedy";"9.6";"14"
+tt5545254;"Todd and the Book of Pure Evil: The End of the End";"2017";"";"Animation
+tt6170682;"Slingshot Cops";"2016";"90";"Action
+tt4337500;"Life Hack";"2017";"90";"Comedy";"9.6";"8"
+tt6274750;"Adults";"2017";"";"Comedy
+tt7236870;"Sissi ohne Franz";"2017";"17";"Comedy
+tt3186220;"In the Company of Women";"2015";"97";"Adventure
+tt3774894;"Los encantados";"2016";"70";"Comedy
+tt4861408;"Cheat-hos: A Political Comedy";"2015";"";"Comedy";"10.0";"5"
+tt7326616;"Ca tourne pres de chez vous";"2017";"";"Comedy";"10.0";"5"
+*/
+
+/*Q2- What is the name and birth year for all actors in Pulp Fiction? Query lists the actors in increasing order of birth year.*/
+
+WITH pf_ID AS
+(
+SELECT tb.tconst, tb.originaltitle, tb. startyear,tpm.principalcast
+	FROM title_basics tb 
+	LEFT JOIN title_principals_melt tpm ON tb.tconst=tpm.tconst 
+	WHERE tb.originaltitle ~ '.*Pulp.*Fiction.*' AND tb.titletype='movie'
+)
+    SELECT  nb.primaryname,nb.birthyear
+        FROM pf_ID LEFT JOIN name_basics nb ON pf_ID.principalcast=nb.nconst
+        WHERE nb.primaryprofession ~'actor|actress'
+        ORDER BY nb.birthyear ASC;
+        
+/*Q2- Output
+
+primaryname;"birthyear"
+Samuel L. Jackson;"1948"
+John Travolta;"1954"
+Bruce Willis;"1955"
+Lawrence Bender;"1957"
+Quentin Tarantino;"1963"
+Uma Thurman;"1970"
+Petr Marek;"1974"
+Janek PalÃ¡t;""
+David Wasco;""
+Prokop Holoubek;""
+Magdalena HrubÃ¡;""
+Charles Ardai;""
+*/
+
+/*Q3- Which movies have John Travolta and Uma Thurman starred in together? Query lists the movies all fields from title_basics.*/
+
+WITH jt_id AS
+
+(SELECT nb.nconst 
+	FROM name_basics nb
+	WHERE nb.primaryname LIKE '%John Travolta%' AND primaryprofession ~ '(?i)actor' AND birthyear=1954),
+
+jt_titles AS
+  (SELECT jt_id.nconst,tpm.tconst 
+	FROM jt_id 
+	LEFT JOIN title_principals_melt tpm ON jt_id.nconst=tpm.principalcast),
+ 
+ut_id AS
+  (SELECT nb.nconst 
+	FROM name_basics nb
+	WHERE nb.primaryname LIKE '%Uma Thurman%' AND primaryprofession ~ '(?i)actress'),
+    
+ut_titles AS
+ (SELECT ut_id.nconst,tpm.tconst 
+	FROM ut_id 
+	LEFT JOIN title_principals_melt tpm ON ut_id.nconst=tpm.principalcast)
+
+SELECT tb.* FROM jt_titles
+INNER JOIN ut_titles ON jt_titles.tconst=ut_titles.tconst
+LEFT JOIN title_basics tb ON jt_titles.tconst=tb.tconst
+WHERE tb.titletype='movie';
+
+/*Q3- Output
+tconst;"titletype";"primarytitle";"originaltitle";"isadult";"startyear";"endyear";"runtimeminutes";"genres"		
+tt0110912;"movie";"Pulp Fiction";"Pulp Fiction";"f";"1994";"";"154";"Crime	Drama"	
+tt0377471;"movie";"Be Cool";"Be Cool";"f";"2005";"";"118";"Comedy	Crime	Music"
+*/
